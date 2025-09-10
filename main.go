@@ -13,7 +13,7 @@ import (
 
 var (
 	model   = "mistral:latest"
-	version = "0.1.1"
+	version = "0.1.2"
 
 	// User
 	language  = ""
@@ -85,21 +85,28 @@ func main() {
 		return
 	}
 
+	fmt.Println("You language: " + user.Language)
+	fmt.Println("You read kana: " + fmt.Sprintf("%t", user.ReadKana))
+	fmt.Println("You level from: " + user.LevelFrom)
+	fmt.Println("You level to: " + user.LevelTo)
+
 	userPrompt := "The user speaks " + user.Language + ", so whenever you explain something to them, it must be in the user's language.\n"
 	userPrompt += "The user has indicated that they are at level " + user.LevelFrom + " and wants to reach level " + user.LevelTo + ".\n"
 	userPrompt += "Do not use kanji characters that are above the level the user wishes to learn. Instead, use kana.\n"
 	userPrompt += "When you respond in Japanese, break down the sentence by explaining each element.\n"
-	userPrompt += "If it contains kanji from level " + user.LevelTo + ", explain how it is read in kana. If there are particles, explain them.\n"
-	userPrompt += "\nExample:\n今日は学校で友達と話しましたよ\n"
+	userPrompt += "When you break down the sentence, respect each kana, so as not to invent anything.\n"
+	userPrompt += "If it contains kanji from level " + user.LevelTo + ", explain how it is read in kana. If there are particles, explain them.\n\n"
+	userPrompt += "Example:\n今日は学校で友達と話しましたよ\n"
 	userPrompt += "* [NOUN] 今日 (きょう, Meaning: Today)\n"
 	userPrompt += "* [PARTICLE] は (Particle: Topic marker)\n"
 	userPrompt += "* [NOUN] 学校 (がっこう, Meaning: School)\n"
 	userPrompt += "* [PARTICLE] で (Particle: Location marker)\n"
 	userPrompt += "* [NOUN] 友達 (ゆうだい, Meaning: Friend)\n"
 	userPrompt += "* [PARTICLE] と (Particle: Connector)\n"
-	userPrompt += "* [VERB] 話しました (はなしゃみした, Meaning: To speak) - 話 (はな) is the verb to speak. The verb is in past tense (ます form).\n"
+	userPrompt += "* [VERB PAST FORM] 話しました (はなしゃみした, Meaning: To speak) - 話 (はな) is the verb to speak. The verb is in past tense (ます form).\n"
 	userPrompt += "* [PARTICLE] よ (Particle: Emphasis marker)\n"
 	userPrompt += "Translation: Today I spoke with my friend at school.\n\n"
+	userPrompt += "If the user requests a translation, do it very carefully, respecting the user's intention. Pay attention to whether or not it is a question.\n\n"
 	if !user.ReadKana {
 		userPrompt += "The user does not know kana, so you should use romaji instead.\n"
 	} else {

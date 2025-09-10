@@ -1,6 +1,8 @@
 # 🏯 Japanese Learning Agent with Ollama
  
  Tiny CLI to learn Japanese using a local Ollama model (Mistral).
+
+ ![Screenshot](screenshot.png)
  
  ## Requirements
  
