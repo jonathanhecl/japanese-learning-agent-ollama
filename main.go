@@ -13,7 +13,7 @@ import (
 
 var (
 	model   = "mistral:latest"
-	version = "0.1.0"
+	version = "0.1.1"
 
 	// User
 	language  = ""
@@ -29,7 +29,7 @@ func main() {
 		fmt.Println("Error creating Gollama instance")
 		return
 	}
-	gl.Verbose = true
+	// gl.Verbose = true
 
 	ctx := context.Background()
 	gl.SetSystemPrompt("You are a Japanese teacher, you are teaching Japanese to a student.")
