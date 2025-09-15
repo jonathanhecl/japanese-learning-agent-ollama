@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/jonathanhecl/gollama"
 )
 
 var (
 	model   = "mistral:latest"
-	version = "0.1.2"
+	version = "0.1.3"
 
 	// User
 	language  = ""
@@ -24,6 +26,10 @@ var (
 
 func main() {
 	fmt.Println("Japanese Learning Agent v" + version)
+	if v := os.Getenv("OLLAMA_MODEL"); v != "" {
+		model = v
+	}
+	fmt.Println("Model: " + model)
 	gl := gollama.New(model)
 	if gl == nil {
 		fmt.Println("Error creating Gollama instance")
@@ -31,7 +37,8 @@ func main() {
 	}
 	// gl.Verbose = true
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	gl.SetSystemPrompt("You are a Japanese teacher, you are teaching Japanese to a student.")
 
 	type userStr struct {
@@ -85,10 +92,10 @@ func main() {
 		return
 	}
 
-	fmt.Println("You language: " + user.Language)
+	fmt.Println("Your language: " + user.Language)
 	fmt.Println("You read kana: " + fmt.Sprintf("%t", user.ReadKana))
-	fmt.Println("You level from: " + user.LevelFrom)
-	fmt.Println("You level to: " + user.LevelTo)
+	fmt.Println("Your level from: " + user.LevelFrom)
+	fmt.Println("Your level to: " + user.LevelTo)
 
 	userPrompt := "The user speaks " + user.Language + ", so whenever you explain something to them, it must be in the user's language.\n"
 	userPrompt += "The user has indicated that they are at level " + user.LevelFrom + " and wants to reach level " + user.LevelTo + ".\n"
@@ -101,9 +108,9 @@ func main() {
 	userPrompt += "* [PARTICLE] は (Particle: Topic marker)\n"
 	userPrompt += "* [NOUN] 学校 (がっこう, Meaning: School)\n"
 	userPrompt += "* [PARTICLE] で (Particle: Location marker)\n"
-	userPrompt += "* [NOUN] 友達 (ゆうだい, Meaning: Friend)\n"
+	userPrompt += "* [NOUN] 友達 (ともだち, Meaning: Friend)\n"
 	userPrompt += "* [PARTICLE] と (Particle: Connector)\n"
-	userPrompt += "* [VERB PAST FORM] 話しました (はなしゃみした, Meaning: To speak) - 話 (はな) is the verb to speak. The verb is in past tense (ます form).\n"
+	userPrompt += "* [VERB PAST FORM] 話しました (はなしました, Meaning: To speak) - 話す (はなす) is the dictionary form. The verb is in past tense (ます form).\n"
 	userPrompt += "* [PARTICLE] よ (Particle: Emphasis marker)\n"
 	userPrompt += "Translation: Today I spoke with my friend at school.\n\n"
 	userPrompt += "If the user requests a translation, do it very carefully, respecting the user's intention. Pay attention to whether or not it is a question.\n\n"
@@ -118,11 +125,15 @@ func main() {
 	fmt.Println("Welcome to the Japanese Learning Agent!")
 
 	for {
+		if ctx.Err() != nil {
+			fmt.Println("\nさようなら")
+			break
+		}
 		fmt.Print("You: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("\nBye!")
+				fmt.Println("\nさようなら")
 				break
 			}
 			fmt.Println("Error reading input:", err)
@@ -135,7 +146,7 @@ func main() {
 			continue
 		}
 		if strings.EqualFold(input, "exit") || strings.EqualFold(input, "quit") {
-			fmt.Println("さようなら")
+			fmt.Println("\nさようなら")
 			break
 		}
 

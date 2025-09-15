@@ -31,7 +31,7 @@ jobs:
         with:
           go-version: ${{ env.GOVERSION }}
       - name: Build for Linux
-        run: GOOS=linux GOARCH=amd64 go build -o ${{ env.NAME }}-linux64 .
+        run: GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ github.ref_name }}" -o ${{ env.NAME }}-linux64 .
       - uses: actions/upload-artifact@v4
         with:
           name: linux-binaries
@@ -47,10 +47,11 @@ jobs:
         with:
           go-version: ${{ env.GOVERSION }}
       - name: Build for Windows
+        shell: pwsh
         run: |
-          set GOOS=windows
-          set GOARCH=amd64
-          go build -o ${{ env.NAME }}-win64.exe .
+          $env:GOOS = 'windows'
+          $env:GOARCH = 'amd64'
+          go build -ldflags "-X main.version=$env:GITHUB_REF_NAME" -o ${{ env.NAME }}-win64.exe .
       - uses: actions/upload-artifact@v4
         with:
           name: windows-binaries
@@ -66,7 +67,7 @@ jobs:
         with:
           go-version: ${{ env.GOVERSION }}
       - name: Build for macOS ARM64
-        run: GOOS=darwin GOARCH=arm64 go build -o ${{ env.NAME }}-macos-arm64 .
+        run: GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ github.ref_name }}" -o ${{ env.NAME }}-macos-arm64 .
       - uses: actions/upload-artifact@v4
         with:
           name: macos-arm64-binaries
@@ -82,7 +83,7 @@ jobs:
         with:
           go-version: ${{ env.GOVERSION }}
       - name: Build for macOS AMD64
-        run: GOOS=darwin GOARCH=amd64 go build -o ${{ env.NAME }}-macos-amd64 .
+        run: GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ github.ref_name }}" -o ${{ env.NAME }}-macos-amd64 .
       - uses: actions/upload-artifact@v4
         with:
           name: macos-amd64-binaries
