@@ -39,7 +39,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	gl.SetSystemPrompt("You are a Japanese teacher, you are teaching Japanese to a student.")
+	gl.SetSystemPrompt("You are a helpful and patient Japanese language teacher. Your goal is to help the user learn Japanese based on their level and interests. Be encouraging and clear.")
 
 	type userStr struct {
 		Language  string `json:"language" required:"true" description:"Language the user speaks"`
@@ -72,17 +72,23 @@ func main() {
 	input = strings.TrimSpace(input)
 
 	fmt.Println("Thinking...")
-	r, err = gl.Chat(ctx, "1. What is your native language or the primary language you speak?\n"+
-		"2. Do you understand hiragana and katakana (the two kana systems in Japanese)?\n"+
-		"3. Could you tell me about your current level of Japanese?\n"+
-		"4. What level would you like to achieve in Japanese?\n\n"+
-
-		"User response: "+input+"\n\n"+
-
-		"By default, if not specified, LevelFrom is none.\n"+
-		"By default, if not specified, LevelTo is JLPT N5.\n"+
-		"Complete the user's profile with the response.\n"+
-		"Answer in JSON format.", gollama.StructToStructuredFormat(userStr{}))
+	r, err = gl.Chat(ctx, "Analyze the user's response and extract their profile.\n"+
+		"1. Native Language\n"+
+		"2. Knowledge of Hiragana/Katakana\n"+
+		"3. Current Level\n"+
+		"4. Target Level\n\n"+
+		"User response: \""+input+"\"\n\n"+
+		"Instructions:\n"+
+		"- Default LevelFrom: none\n"+
+		"- Default LevelTo: JLPT N5\n"+
+		"- Respond STRICTLY with valid JSON only. No markdown, no explanations.\n"+
+		"- Use the following schema:\n"+
+		"{\n"+
+		"  \"language\": \"string\",\n"+
+		"  \"readKana\": boolean,\n"+
+		"  \"levelFrom\": \"string\",\n"+
+		"  \"levelTo\": \"string\"\n"+
+		"}", gollama.StructToStructuredFormat(userStr{}))
 	if err != nil {
 		fmt.Println("Error: " + err.Error())
 		return
@@ -97,30 +103,39 @@ func main() {
 	fmt.Println("Your level from: " + user.LevelFrom)
 	fmt.Println("Your level to: " + user.LevelTo)
 
-	userPrompt := "The user speaks " + user.Language + ", so whenever you explain something to them, it must be in the user's language.\n"
-	userPrompt += "The user has indicated that they are at level " + user.LevelFrom + " and wants to reach level " + user.LevelTo + ".\n"
-	userPrompt += "Do not use kanji characters that are above the level the user wishes to learn. Instead, use kana.\n"
-	userPrompt += "When you respond in Japanese, break down the sentence by explaining each element.\n"
-	userPrompt += "When you break down the sentence, respect each kana, so as not to invent anything.\n"
-	userPrompt += "If it contains kanji from level " + user.LevelTo + ", explain how it is read in kana. If there are particles, explain them.\n\n"
-	userPrompt += "Example:\n今日は学校で友達と話しましたよ\n"
-	userPrompt += "* [NOUN] 今日 (きょう, Meaning: Today)\n"
-	userPrompt += "* [PARTICLE] は (Particle: Topic marker)\n"
-	userPrompt += "* [NOUN] 学校 (がっこう, Meaning: School)\n"
-	userPrompt += "* [PARTICLE] で (Particle: Location marker)\n"
-	userPrompt += "* [NOUN] 友達 (ともだち, Meaning: Friend)\n"
-	userPrompt += "* [PARTICLE] と (Particle: Connector)\n"
-	userPrompt += "* [VERB PAST FORM] 話しました (はなしました, Meaning: To speak) - 話す (はなす) is the dictionary form. The verb is in past tense (ます form).\n"
-	userPrompt += "* [PARTICLE] よ (Particle: Emphasis marker)\n"
-	userPrompt += "Translation: Today I spoke with my friend at school.\n\n"
-	userPrompt += "If the user requests a translation, do it very carefully, respecting the user's intention. Pay attention to whether or not it is a question.\n\n"
-	if !user.ReadKana {
-		userPrompt += "The user does not know kana, so you should use romaji instead.\n"
+	userPrompt := "[ROLE]\n"
+	userPrompt += "You are a Japanese teacher. Teach the user based on their profile.\n\n"
+	userPrompt += "[USER PROFILE]\n"
+	userPrompt += "- Language: " + user.Language + "\n"
+	userPrompt += "- Current Level: " + user.LevelFrom + "\n"
+	userPrompt += "- Target Level: " + user.LevelTo + "\n"
+	if user.ReadKana {
+		userPrompt += "- Kana Knowledge: Yes (Use Kana, NO Romaji)\n"
 	} else {
-		userPrompt += "The user can read kana. Then don't use romaji.\n"
+		userPrompt += "- Kana Knowledge: No (Use Romaji for all Japanese text)\n"
 	}
+	userPrompt += "\n[INSTRUCTIONS]\n"
+	userPrompt += "1. Explain everything in " + user.Language + ".\n"
+	userPrompt += "2. Do not use Kanji above " + user.LevelTo + ".\n"
+	userPrompt += "3. If you use Kanji, always provide the reading.\n"
+	userPrompt += "4. When providing a Japanese sentence, break it down grammatically.\n"
+	userPrompt += "5. Be concise but helpful.\n\n"
+	userPrompt += "[RESPONSE FORMAT]\n"
+	userPrompt += "1. Japanese Sentence (with reading if needed)\n"
+	userPrompt += "2. Breakdown (Bullet points for each word/particle)\n"
+	userPrompt += "3. Translation\n"
+	userPrompt += "4. Explanation (if requested or necessary)\n\n"
+	userPrompt += "[EXAMPLE]\n"
+	userPrompt += "Sentence: 今日は学校に行きます (Kyō wa gakkō ni ikimasu)\n"
+	userPrompt += "Breakdown:\n"
+	userPrompt += "* 今日 (Kyō) - Today [Noun]\n"
+	userPrompt += "* は (wa) - Topic Marker [Particle]\n"
+	userPrompt += "* 学校 (gakkō) - School [Noun]\n"
+	userPrompt += "* に (ni) - Direction Marker [Particle]\n"
+	userPrompt += "* 行きます (ikimasu) - To go [Verb, Polite]\n"
+	userPrompt += "Translation: I am going to school today.\n"
 
-	gl.SetSystemPrompt("You are a Japanese teacher, you are teaching Japanese to a student.\n" + userPrompt)
+	gl.SetSystemPrompt(userPrompt)
 
 	fmt.Println("Welcome to the Japanese Learning Agent!")
 
